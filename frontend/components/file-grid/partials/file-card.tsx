@@ -1,64 +1,62 @@
-import { FileIcon, MoreVertical } from "lucide-react";
+import { Download } from "lucide-react";
 import FileContextMenu from "./file-context-menu";
-
-export interface File {
-  id: string;
-  name: string;
-  type: "file" | "folder";
-  icon: string;
-  modified: string;
-  size?: string;
-  owner?: string;
-}
+import { FileData, FileAPI } from "@/lib/file-api";
 
 export const FileCard = ({
   file,
   selectedFile,
   onFileClick,
-  onFileAction,
 }: {
-  file: File;
+  file: FileData;
   selectedFile: string | null;
   onFileClick: (id: string) => void;
-  onFileAction?: (action: string, file: File) => void;
 }) => {
-  const handleFileAction = (action: string, fileData: File) => {
-    onFileAction?.(action, fileData);
+  const formatDate = (dateString: string) => {
+    return new Date(dateString).toLocaleDateString("en-US", {
+      year: "numeric",
+      month: "short",
+      day: "numeric",
+    });
+  };
+
+  const handleDownload = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    window.open(FileAPI.getDownloadUrl(file.id), "_blank");
   };
 
   return (
     <div
-      key={file.id}
-      onClick={() => onFileClick(file.id)}
-      className={`group cursor-pointer transition-all rounded-lg overflow-hidden ${
-        selectedFile === file.id ? "ring-2 ring-[#4a90e2]" : ""
+      className={`relative group cursor-pointer p-4 border border-[#3c4043] rounded-lg bg-[#2d2e30] hover:bg-[#35363a] transition-colors ${
+        selectedFile === file.id.toString() ? "ring-2 ring-[#4a90e2]" : ""
       }`}
+      onClick={() => onFileClick(file.id.toString())}
     >
-      <div className="bg-[#303134] rounded-lg p-2 h-48 flex flex-col justify-between hover:bg-[#3c4043] transition-colors gap-2">
-        <div className="flex justify-between items-center">
-          <div className="flex items-center gap-2">
-            <FileIcon size={16} />
-            <h3 className="font-medium text-white text-sm truncate">
-              {file.name}
-            </h3>
-          </div>
-
-          <FileContextMenu
-            file={file}
-            onAction={handleFileAction}
-            trigger={
-              <button
-                className="p-2 hover:bg-[#4a5051] rounded transition-all"
-                onClick={(e) => {
-                  e.stopPropagation(); // Prevent triggering file selection
-                }}
-              >
-                <MoreVertical size={20} className="text-[#9aa0a6]" />
-              </button>
-            }
-          />
+      <div className="flex items-center justify-between mb-3">
+        <div className="text-2xl">{FileAPI.getFileIcon(file.mime_type)}</div>
+        <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+          <button
+            onClick={handleDownload}
+            className="p-1 hover:bg-[#4a5051] rounded transition-colors"
+            title="Download"
+          >
+            <Download size={16} className="text-[#9aa0a6]" />
+          </button>
+          <FileContextMenu file={file} />
         </div>
-        <div className="bg-white rounded-xl h-full w-full"></div>
+      </div>
+
+      <div className="space-y-1">
+        <p
+          className="text-[#e8eaed] text-sm font-medium truncate"
+          title={file.filename}
+        >
+          {file.filename}
+        </p>
+        <div className="flex items-center justify-between text-xs text-[#9aa0a6]">
+          <span>{formatDate(file.modified_at)}</span>
+          <span>{FileAPI.formatFileSize(file.file_size)}</span>
+        </div>
+        <p className="text-xs text-[#9aa0a6] truncate">Owned by you</p>
       </div>
     </div>
   );
