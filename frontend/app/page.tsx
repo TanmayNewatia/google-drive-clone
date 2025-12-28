@@ -1,11 +1,11 @@
 "use client";
 
-import type React from "react";
-
 import { useState } from "react";
 import Sidebar from "@/components/sidebar/sidebar";
 import Header from "@/components/header/header";
 import FileGrid from "@/components/file-grid/file-grid";
+import { LoginPage } from "@/components/login-page";
+import { useAuth } from "@/contexts/auth-context";
 
 interface File {
   id: string;
@@ -18,7 +18,22 @@ interface File {
 }
 
 export default function Home() {
+  const { user, loading } = useAuth();
   const [selectedFile, setSelectedFile] = useState<string | null>(null);
+
+  // Show loading spinner while checking authentication
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-[#202124] flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#4a90e2]"></div>
+      </div>
+    );
+  }
+
+  // Show login page if user is not authenticated
+  if (!user) {
+    return <LoginPage />;
+  }
 
   const files: File[] = [
     {
@@ -76,23 +91,11 @@ export default function Home() {
 
     // Handle different actions
     switch (action) {
-      case "download":
-        console.log(`Downloading ${file.name}`);
-        break;
       case "rename":
         console.log(`Renaming ${file.name}`);
         break;
-      case "copy":
-        console.log(`Copying ${file.name}`);
-        break;
       case "delete":
         console.log(`Moving ${file.name} to trash`);
-        break;
-      case "share-link":
-        console.log(`Getting shareable link for ${file.name}`);
-        break;
-      case "share-email":
-        console.log(`Sharing ${file.name} via email`);
         break;
       default:
         console.log(`Unknown action: ${action}`);

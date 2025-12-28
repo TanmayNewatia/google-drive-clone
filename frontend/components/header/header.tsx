@@ -3,6 +3,7 @@
 import { useHeader } from "./hooks";
 import { HeaderIconButton } from "./partials/header-icon-button";
 import { HeaderSearchInput } from "./partials/header-search-input";
+import { UserProfile } from "./partials/user-profile";
 
 export default function Header() {
   const { headerIcons } = useHeader();
@@ -15,9 +16,7 @@ export default function Header() {
           {headerIcons.map((item, index) => (
             <HeaderIconButton key={index} item={item} />
           ))}
-          <div className="w-8 h-8 rounded-full bg-[#4a90e2] flex items-center justify-center text-sm font-bold">
-            A
-          </div>
+          <UserProfile />
         </div>
       </div>
     </div>

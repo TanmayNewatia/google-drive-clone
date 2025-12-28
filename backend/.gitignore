@@ -3,3 +3,9 @@
 
 # env
 .env
+
+# output
+/dist
+
+# db
+/var
