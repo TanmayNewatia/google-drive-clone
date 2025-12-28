@@ -3,7 +3,6 @@ export const config = {
   api: {
     baseUrl:
       process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:3001/api",
-    backendUrl: process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:3001",
   },
   file: {
     maxSize: parseInt(process.env.NEXT_PUBLIC_MAX_FILE_SIZE || "104857600"), // 100MB default
@@ -18,12 +17,6 @@ export const config = {
 // Helper functions for configuration
 export const getApiUrl = (endpoint: string) => {
   return `${config.api.baseUrl}${
-    endpoint.startsWith("/") ? endpoint : `/${endpoint}`
-  }`;
-};
-
-export const getAuthUrl = (endpoint: string) => {
-  return `${config.api.backendUrl}${
     endpoint.startsWith("/") ? endpoint : `/${endpoint}`
   }`;
 };
