@@ -208,6 +208,8 @@ router.get(
   (req, res, next) => {
     console.log("=== Google OAuth initiation ===");
     console.log("Session ID:", req.sessionID);
+    console.log("Session data:", req.session);
+    console.log("Cookies:", req.headers.cookie);
     console.log("Redirecting to Google...");
     next();
   },
@@ -227,6 +229,8 @@ router.get(
     console.log("=== Google callback hit ===");
     console.log("Query params:", req.query);
     console.log("Session before auth:", req.sessionID);
+    console.log("Session data:", req.session);
+    console.log("Cookies:", req.headers.cookie);
     console.log("Headers:", req.headers);
     next();
   },

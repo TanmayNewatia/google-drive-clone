@@ -37,13 +37,13 @@ app.use(
   session({
     secret: process.env.SESSION_SECRET || "your-session-secret",
     resave: false,
-    saveUninitialized: false,
+    saveUninitialized: true, // Changed to true for OAuth state handling
     name: "google-drive-session",
     cookie: {
-      secure: process.env.NODE_ENV === "production", // HTTPS only in production
+      secure: false,
       httpOnly: true,
       maxAge: 24 * 60 * 60 * 1000, // 24 hours
-      sameSite: process.env.NODE_ENV === "production" ? "none" : "lax", // Cross-site cookies for production
+      sameSite: "lax",
     },
   })
 );
@@ -67,13 +67,13 @@ app.listen(port, () => {
 });
 
 // Error handling
-process.on('uncaughtException', (err) => {
-  console.error('Uncaught Exception:', err);
+process.on("uncaughtException", (err) => {
+  console.error("Uncaught Exception:", err);
   process.exit(1);
 });
 
-process.on('unhandledRejection', (reason, promise) => {
-  console.error('Unhandled Rejection at:', promise, 'reason:', reason);
+process.on("unhandledRejection", (reason, promise) => {
+  console.error("Unhandled Rejection at:", promise, "reason:", reason);
   process.exit(1);
 });
 
