@@ -44,6 +44,13 @@ interface GoogleProfile {
 // behalf, along with the user's profile. The function must invoke `cb`
 // with a user object, which will be set at `req.user` in route handlers after
 // authentication.
+console.log("=== Configuring Google OAuth Strategy ===");
+console.log(
+  "Client ID:",
+  process.env.GOOGLE_CLIENT_ID?.substring(0, 10) + "..."
+);
+console.log("Callback URL:", process.env.GOOGLE_CALLBACK_URL);
+
 passport.use(
   new GoogleStrategy(
     {
@@ -196,7 +203,16 @@ router.get(
  * Once Google has completed their interaction with the user, the user will be
  * redirected back to the app at `GET /oauth2/redirect/google`.
  */
-router.get("/google", passport.authenticate("google"));
+router.get(
+  "/google",
+  (req, res, next) => {
+    console.log("=== Google OAuth initiation ===");
+    console.log("Session ID:", req.sessionID);
+    console.log("Redirecting to Google...");
+    next();
+  },
+  passport.authenticate("google")
+);
 
 /* GET /auth/google/callback
  *
@@ -208,23 +224,54 @@ router.get("/google", passport.authenticate("google"));
 router.get(
   "/google/callback",
   (req, res, next) => {
-    console.log("Google callback hit");
+    console.log("=== Google callback hit ===");
     console.log("Query params:", req.query);
     console.log("Session before auth:", req.sessionID);
+    console.log("Headers:", req.headers);
     next();
   },
-  passport.authenticate("google", {
-    failureRedirect: `${
-      process.env.FRONTEND_URL || "http://localhost:3000"
-    }/?error=auth_failed`,
-  }),
-  function (req: express.Request, res: express.Response) {
-    console.log("Auth successful, user:", req.user);
-    console.log("Session after auth:", req.sessionID);
-    // Successful authentication, redirect to frontend
-    res.redirect(
-      `${process.env.FRONTEND_URL || "http://localhost:3000"}/auth/callback`
-    );
+  (req, res, next) => {
+    passport.authenticate("google", (err: any, user: any, info: any) => {
+      console.log("=== Passport authenticate callback ===");
+      console.log("Error:", err);
+      console.log("User:", user);
+      console.log("Info:", info);
+
+      if (err) {
+        console.error("Authentication error:", err);
+        return res.redirect(
+          `${
+            process.env.FRONTEND_URL || "http://localhost:3000"
+          }/?error=auth_error`
+        );
+      }
+
+      if (!user) {
+        console.log("No user returned from authentication");
+        return res.redirect(
+          `${
+            process.env.FRONTEND_URL || "http://localhost:3000"
+          }/?error=no_user`
+        );
+      }
+
+      req.logIn(user, (err: any) => {
+        if (err) {
+          console.error("Login error:", err);
+          return res.redirect(
+            `${
+              process.env.FRONTEND_URL || "http://localhost:3000"
+            }/?error=login_failed`
+          );
+        }
+
+        console.log("Auth successful, user:", req.user);
+        console.log("Session after auth:", req.sessionID);
+        return res.redirect(
+          `${process.env.FRONTEND_URL || "http://localhost:3000"}/auth/callback`
+        );
+      });
+    })(req, res, next);
   }
 );
 
