@@ -1,14 +1,11 @@
-"use client";
-
 import { useState, useRef } from "react";
-import { Upload, X } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { useUploadFile } from "@/hooks/use-file-queries";
-import { Progress } from "@/components/ui/progress";
+import { useUploadFile } from "./use-file-queries";
 
-export function FileUpload() {
+export function useFileUpload() {
   const uploadFileMutation = useUploadFile();
   const [uploadProgress, setUploadProgress] = useState(0);
+  const [selectedFileName, setSelectedFileName] = useState<string>("");
+  const [localError, setLocalError] = useState<Error | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleFileSelect = async (
@@ -18,7 +15,20 @@ export function FileUpload() {
     if (!files || files.length === 0) return;
 
     const file = files[0];
+    await uploadFile(file);
+  };
+
+  const handleFilesDrop = async (files: FileList) => {
+    if (files.length === 0) return;
+
+    const file = files[0]; // For now, just take the first file
+    await uploadFile(file);
+  };
+
+  const uploadFile = async (file: File) => {
+    setSelectedFileName(file.name);
     setUploadProgress(0);
+    setLocalError(null);
 
     try {
       // Simulate progress (since we don't have real progress from API)
@@ -33,9 +43,13 @@ export function FileUpload() {
 
       setTimeout(() => {
         setUploadProgress(0);
+        setSelectedFileName("");
       }, 1000);
     } catch (error) {
       setUploadProgress(0);
+      setLocalError(
+        error instanceof Error ? error : new Error("Upload failed")
+      );
       console.error("Upload failed:", error);
     }
 
@@ -49,34 +63,19 @@ export function FileUpload() {
     fileInputRef.current?.click();
   };
 
-  return (
-    <div className="space-y-4">
-      <input
-        ref={fileInputRef}
-        type="file"
-        onChange={handleFileSelect}
-        className="hidden"
-        multiple={false}
-      />
+  const clearError = () => {
+    setLocalError(null);
+  };
 
-      <Button
-        onClick={triggerFileSelect}
-        disabled={uploadFileMutation.isPending}
-        className="bg-[#4a90e2] hover:bg-[#357abd] text-white gap-2"
-      >
-        <Upload size={16} />
-        {uploadFileMutation.isPending ? "Uploading..." : "Upload File"}
-      </Button>
-
-      {uploadFileMutation.isPending && (
-        <div className="space-y-2">
-          <div className="flex items-center justify-between text-sm text-[#9aa0a6]">
-            <span>Uploading...</span>
-            <span>{uploadProgress}%</span>
-          </div>
-          <Progress value={uploadProgress} className="h-2" />
-        </div>
-      )}
-    </div>
-  );
+  return {
+    uploadProgress,
+    selectedFileName,
+    isUploading: uploadFileMutation.isPending,
+    fileInputRef,
+    handleFileSelect,
+    handleFilesDrop,
+    triggerFileSelect,
+    error: localError || uploadFileMutation.error,
+    clearError,
+  };
 }
