@@ -44,13 +44,6 @@ interface GoogleProfile {
 // behalf, along with the user's profile. The function must invoke `cb`
 // with a user object, which will be set at `req.user` in route handlers after
 // authentication.
-console.log("=== Configuring Google OAuth Strategy ===");
-console.log(
-  "Client ID:",
-  process.env.GOOGLE_CLIENT_ID?.substring(0, 10) + "..."
-);
-console.log("Callback URL:", process.env.GOOGLE_CALLBACK_URL);
-
 passport.use(
   new GoogleStrategy(
     {
@@ -65,12 +58,6 @@ passport.use(
       cb: Function
     ) {
       try {
-        console.log("=== Passport verify function called ===");
-        console.log("Access Token:", accessToken ? "Present" : "Missing");
-        console.log("Profile ID:", profile.id);
-        console.log("Profile displayName:", profile.displayName);
-        console.log("Profile emails:", profile.emails);
-
         const issuer = "https://accounts.google.com";
 
         // Check if user already exists with this federated credential
@@ -78,10 +65,8 @@ passport.use(
           "SELECT * FROM federated_credentials WHERE provider = ? AND subject = ?",
           [issuer, profile.id]
         );
-        console.log("Existing credential:", existingCredential);
 
         if (!existingCredential) {
-          console.log("Creating new user...");
           // Create new user
           const userResult = await dbUtils.run(
             "INSERT INTO users (name, email, username) VALUES (?, ?, ?)",
@@ -93,7 +78,6 @@ passport.use(
           );
 
           const userId = userResult.lastID!;
-          console.log("New user created with ID:", userId);
 
           // Create federated credential
           await dbUtils.run(
@@ -108,20 +92,15 @@ passport.use(
             username: profile.emails?.[0]?.value || `user_${userId}`,
           };
 
-          console.log("Returning new user:", user);
           return cb(null, user);
         } else {
-          console.log("User exists, fetching user details...");
           // User exists, get user details
           const user = await dbUtils.get<User>(
             "SELECT * FROM users WHERE id = ?",
             [existingCredential.user_id]
           );
 
-          console.log("Fetched user:", user);
-
           if (!user) {
-            console.log("User not found in database!");
             return cb(null, false);
           }
 
@@ -131,12 +110,9 @@ passport.use(
             username: user.username,
           };
 
-          console.log("Returning existing user:", passportUser);
           return cb(null, passportUser);
         }
       } catch (error) {
-        console.error("=== Passport verify function ERROR ===");
-        console.error("Authentication error:", error);
         return cb(error);
       }
     }
@@ -151,22 +127,18 @@ passport.use(
 // supplying the user ID when serializing, and querying the user record by ID
 // from the database when deserializing.
 passport.serializeUser(function (user: any, cb: Function) {
-  console.log("=== Serializing user ===", user);
   process.nextTick(function () {
     const serializedUser = {
       id: user.id,
       username: user.username,
       name: user.name,
     };
-    console.log("Serialized to:", serializedUser);
     cb(null, serializedUser);
   });
 });
 
 passport.deserializeUser(function (user: PassportUser, cb: Function) {
-  console.log("=== Deserializing user ===", user);
   process.nextTick(function () {
-    console.log("Deserialized user:", user);
     return cb(null, user);
   });
 });
@@ -210,14 +182,6 @@ router.get(
  */
 router.get(
   "/google",
-  (req, res, next) => {
-    console.log("=== Google OAuth initiation ===");
-    console.log("Session ID:", req.sessionID);
-    console.log("Session data:", req.session);
-    console.log("Cookies:", req.headers.cookie);
-    console.log("Redirecting to Google...");
-    next();
-  },
   passport.authenticate("google", { scope: ["profile", "email"] })
 );
 
@@ -228,61 +192,37 @@ router.get(
  * automatically created and their Google account is linked. When an existing
  * user returns, they are signed in to their linked account.
  */
-router.get(
-  "/google/callback",
-  (req, res, next) => {
-    console.log("=== Google callback hit ===");
-    console.log("Query params:", req.query);
-    console.log("Session before auth:", req.sessionID);
-    console.log("Session data:", req.session);
-    console.log("Cookies:", req.headers.cookie);
-    console.log("Headers:", req.headers);
-    next();
-  },
-  (req, res, next) => {
-    passport.authenticate("google", (err: any, user: any, info: any) => {
-      console.log("=== Passport authenticate callback ===");
-      console.log("Error:", err);
-      console.log("User:", user);
-      console.log("Info:", info);
+router.get("/google/callback", (req, res, next) => {
+  passport.authenticate("google", (err: any, user: any, info: any) => {
+    if (err) {
+      return res.redirect(
+        `${
+          process.env.FRONTEND_URL || "http://localhost:3000"
+        }/?error=auth_error`
+      );
+    }
 
+    if (!user) {
+      return res.redirect(
+        `${process.env.FRONTEND_URL || "http://localhost:3000"}/?error=no_user`
+      );
+    }
+
+    req.logIn(user, (err: any) => {
       if (err) {
-        console.error("Authentication error:", err);
         return res.redirect(
           `${
             process.env.FRONTEND_URL || "http://localhost:3000"
-          }/?error=auth_error`
+          }/?error=login_failed`
         );
       }
 
-      if (!user) {
-        console.log("No user returned from authentication");
-        return res.redirect(
-          `${
-            process.env.FRONTEND_URL || "http://localhost:3000"
-          }/?error=no_user`
-        );
-      }
-
-      req.logIn(user, (err: any) => {
-        if (err) {
-          console.error("Login error:", err);
-          return res.redirect(
-            `${
-              process.env.FRONTEND_URL || "http://localhost:3000"
-            }/?error=login_failed`
-          );
-        }
-
-        console.log("Auth successful, user:", req.user);
-        console.log("Session after auth:", req.sessionID);
-        return res.redirect(
-          `${process.env.FRONTEND_URL || "http://localhost:3000"}/auth/callback`
-        );
-      });
-    })(req, res, next);
-  }
-);
+      return res.redirect(
+        `${process.env.FRONTEND_URL || "http://localhost:3000"}/auth/callback`
+      );
+    });
+  })(req, res, next);
+});
 
 /* POST /logout
  *

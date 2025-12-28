@@ -64,9 +64,6 @@ app.get("/", (req: Request, res: Response) => {
 
 app.listen(port, () => {
   console.log(`Server running on port ${port}`);
-  console.log(`Environment: ${process.env.NODE_ENV}`);
-  console.log(`Frontend URL: ${process.env.FRONTEND_URL}`);
-  console.log(`Google Callback URL: ${process.env.GOOGLE_CALLBACK_URL}`);
 });
 
 // Error handling
