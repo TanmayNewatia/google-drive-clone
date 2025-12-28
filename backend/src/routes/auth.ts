@@ -184,7 +184,7 @@ router.get(
   passport.authenticate("google", {
     failureRedirect: `${
       process.env.FRONTEND_URL || "http://localhost:3000"
-    }/login?error=auth_failed`,
+    }/?error=auth_failed`,
   }),
   function (req: express.Request, res: express.Response) {
     // Successful authentication, redirect to frontend
