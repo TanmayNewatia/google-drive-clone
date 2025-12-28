@@ -181,12 +181,20 @@ router.get("/google", passport.authenticate("google"));
  */
 router.get(
   "/google/callback",
+  (req, res, next) => {
+    console.log("Google callback hit");
+    console.log("Query params:", req.query);
+    console.log("Session before auth:", req.sessionID);
+    next();
+  },
   passport.authenticate("google", {
     failureRedirect: `${
       process.env.FRONTEND_URL || "http://localhost:3000"
     }/?error=auth_failed`,
   }),
   function (req: express.Request, res: express.Response) {
+    console.log("Auth successful, user:", req.user);
+    console.log("Session after auth:", req.sessionID);
     // Successful authentication, redirect to frontend
     res.redirect(
       `${process.env.FRONTEND_URL || "http://localhost:3000"}/auth/callback`
