@@ -54,13 +54,22 @@ passport.use(
     },
     async function verify(issuer: string, profile: any, cb: Function) {
       try {
+        console.log("=== Passport verify function called ===");
+        console.log("Issuer:", issuer);
+        console.log("Profile ID:", profile.id);
+        console.log("Profile displayName:", profile.displayName);
+        console.log("Profile emails:", profile.emails);
+
         // Check if user already exists with this federated credential
         const existingCredential = await dbUtils.get<FederatedCredential>(
           "SELECT * FROM federated_credentials WHERE provider = ? AND subject = ?",
           [issuer, profile.id]
         );
 
+        console.log("Existing credential:", existingCredential);
+
         if (!existingCredential) {
+          console.log("Creating new user...");
           // Create new user
           const userResult = await dbUtils.run(
             "INSERT INTO users (name, email, username) VALUES (?, ?, ?)",
@@ -72,6 +81,7 @@ passport.use(
           );
 
           const userId = userResult.lastID!;
+          console.log("New user created with ID:", userId);
 
           // Create federated credential
           await dbUtils.run(
@@ -86,15 +96,20 @@ passport.use(
             username: profile.emails?.[0]?.value || `user_${userId}`,
           };
 
+          console.log("Returning new user:", user);
           return cb(null, user);
         } else {
+          console.log("User exists, fetching user details...");
           // User exists, get user details
           const user = await dbUtils.get<User>(
             "SELECT * FROM users WHERE id = ?",
             [existingCredential.user_id]
           );
 
+          console.log("Fetched user:", user);
+
           if (!user) {
+            console.log("User not found in database!");
             return cb(null, false);
           }
 
@@ -104,9 +119,11 @@ passport.use(
             username: user.username,
           };
 
+          console.log("Returning existing user:", passportUser);
           return cb(null, passportUser);
         }
       } catch (error) {
+        console.error("=== Passport verify function ERROR ===");
         console.error("Authentication error:", error);
         return cb(error);
       }
@@ -122,18 +139,22 @@ passport.use(
 // supplying the user ID when serializing, and querying the user record by ID
 // from the database when deserializing.
 passport.serializeUser(function (user: any, cb: Function) {
+  console.log("=== Serializing user ===", user);
   process.nextTick(function () {
     const serializedUser = {
       id: user.id,
       username: user.username,
       name: user.name,
     };
+    console.log("Serialized to:", serializedUser);
     cb(null, serializedUser);
   });
 });
 
 passport.deserializeUser(function (user: PassportUser, cb: Function) {
+  console.log("=== Deserializing user ===", user);
   process.nextTick(function () {
+    console.log("Deserialized user:", user);
     return cb(null, user);
   });
 });
