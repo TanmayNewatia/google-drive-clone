@@ -15,6 +15,9 @@ import routes from "./routes";
 const app = express();
 const port = process.env.PORT || 3000;
 
+// Trust proxy (required for Render and other hosting platforms)
+app.set("trust proxy", 1);
+
 // Middleware
 app.use(
   cors({
@@ -37,13 +40,14 @@ app.use(
   session({
     secret: process.env.SESSION_SECRET || "your-session-secret",
     resave: false,
-    saveUninitialized: true, // Changed to true for OAuth state handling
-    name: "google-drive-session",
+    saveUninitialized: true, // Required for OAuth state handling
+    name: "connect.sid", // Use default session name for better compatibility
     cookie: {
-      secure: false,
+      secure: process.env.NODE_ENV === "production", // HTTPS only in production
       httpOnly: true,
       maxAge: 24 * 60 * 60 * 1000, // 24 hours
-      sameSite: "lax",
+      sameSite: process.env.NODE_ENV === "production" ? "none" : "lax", // Allow cross-site in production
+      // Don't set domain - let it default to the request domain
     },
   })
 );
