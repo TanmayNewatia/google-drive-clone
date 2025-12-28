@@ -1,7 +1,7 @@
 import express from "express";
 import passport from "passport";
 import { dbUtils, User, FederatedCredential } from "../db/db";
-import { Strategy as GoogleStrategy } from "passport-google-oidc";
+import { Strategy as GoogleStrategy } from "passport-google-oauth20";
 import dotenv from "dotenv";
 
 // Ensure environment variables are loaded
@@ -57,22 +57,27 @@ passport.use(
       clientID: process.env.GOOGLE_CLIENT_ID!,
       clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
       callbackURL: process.env.GOOGLE_CALLBACK_URL || "/auth/google/callback",
-      scope: ["profile", "email"],
     },
-    async function verify(issuer: string, profile: any, cb: Function) {
+    async function verify(
+      accessToken: string,
+      refreshToken: string,
+      profile: any,
+      cb: Function
+    ) {
       try {
         console.log("=== Passport verify function called ===");
-        console.log("Issuer:", issuer);
+        console.log("Access Token:", accessToken ? "Present" : "Missing");
         console.log("Profile ID:", profile.id);
         console.log("Profile displayName:", profile.displayName);
         console.log("Profile emails:", profile.emails);
+
+        const issuer = "https://accounts.google.com";
 
         // Check if user already exists with this federated credential
         const existingCredential = await dbUtils.get<FederatedCredential>(
           "SELECT * FROM federated_credentials WHERE provider = ? AND subject = ?",
           [issuer, profile.id]
         );
-
         console.log("Existing credential:", existingCredential);
 
         if (!existingCredential) {
@@ -213,7 +218,7 @@ router.get(
     console.log("Redirecting to Google...");
     next();
   },
-  passport.authenticate("google")
+  passport.authenticate("google", { scope: ["profile", "email"] })
 );
 
 /* GET /auth/google/callback

@@ -39,15 +39,14 @@ app.use(express.urlencoded({ extended: true }));
 app.use(
   session({
     secret: process.env.SESSION_SECRET || "your-session-secret",
-    resave: false,
+    resave: true, // Try enabling resave for better persistence
     saveUninitialized: true, // Required for OAuth state handling
-    name: "connect.sid", // Use default session name for better compatibility
+    name: "connect.sid", // Use default session name
     cookie: {
       secure: process.env.NODE_ENV === "production", // HTTPS only in production
       httpOnly: true,
-      maxAge: 24 * 60 * 60 * 1000, // 24 hours
-      sameSite: process.env.NODE_ENV === "production" ? "none" : "lax", // Allow cross-site in production
-      // Don't set domain - let it default to the request domain
+      maxAge: 60 * 60 * 1000, // Shorter timeout - 1 hour
+      sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
     },
   })
 );
