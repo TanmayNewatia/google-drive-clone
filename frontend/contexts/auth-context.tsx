@@ -1,88 +1,59 @@
 "use client";
 
-import {
-  createContext,
-  useContext,
-  useEffect,
-  useState,
-  ReactNode,
-} from "react";
-
-interface User {
-  id: number;
-  name: string;
-  email: string;
-  username?: string;
-}
+import { createContext, useContext, ReactNode } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { AuthAPI, User, authKeys } from "@/lib/auth-api";
 
 interface AuthContextType {
   user: User | null;
   loading: boolean;
   login: () => void;
-  logout: () => void;
-  checkAuth: () => Promise<void>;
+  logout: () => Promise<void>;
+  refetchAuth: () => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [user, setUser] = useState<User | null>(null);
-  const [loading, setLoading] = useState(true);
+  const queryClient = useQueryClient();
 
-  const checkAuth = async () => {
-    try {
-      const response = await fetch("http://localhost:3001/api/auth/user", {
-        method: "GET",
-        credentials: "include",
-        headers: {
-          "Content-Type": "application/json",
-        },
-      });
+  // Use React Query for auth state
+  const {
+    data: authData,
+    isLoading: loading,
+    refetch: refetchAuth,
+  } = useQuery({
+    queryKey: authKeys.user,
+    queryFn: AuthAPI.checkAuth,
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    retry: false, // Don't retry auth failures
+  });
 
-      if (response.ok) {
-        const data = await response.json();
-        setUser(data.user);
-      } else {
-        setUser(null);
-      }
-    } catch (error) {
-      console.error("Auth check failed:", error);
-      setUser(null);
-    } finally {
-      setLoading(false);
-    }
-  };
+  const user = authData?.user || null;
 
   const login = () => {
     // Redirect to Google OAuth
-    window.location.href = "http://localhost:3001/api/auth/google";
+    window.location.href = AuthAPI.getLoginUrl();
   };
 
   const logout = async () => {
     try {
-      await fetch("http://localhost:3001/api/auth/logout", {
-        method: "POST",
-        credentials: "include",
-        headers: {
-          "Content-Type": "application/json",
-        },
-      });
-      setUser(null);
+      await AuthAPI.logout();
+      // Clear all queries and reset auth state
+      queryClient.clear();
+      queryClient.setQueryData(authKeys.user, { user: null });
+      window.location.href = "/";
     } catch (error) {
       console.error("Logout failed:", error);
     }
   };
-
-  useEffect(() => {
-    checkAuth();
-  }, []);
 
   const value: AuthContextType = {
     user,
     loading,
     login,
     logout,
-    checkAuth,
+    refetchAuth: () => refetchAuth(),
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

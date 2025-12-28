@@ -1,6 +1,9 @@
 import { Download } from "lucide-react";
 import FileContextMenu from "./file-context-menu";
-import { FileData, FileAPI } from "@/lib/file-api";
+import { FileData } from "@/lib/file-api";
+import { useDownloadUrl } from "@/hooks/use-file-queries";
+import { formatFileSize } from "@/lib/config";
+import { FileAPI } from "@/lib/file-api";
 
 export const FileCard = ({
   file,
@@ -19,9 +22,11 @@ export const FileCard = ({
     });
   };
 
+  const downloadUrl = useDownloadUrl(file.id);
+
   const handleDownload = (e: React.MouseEvent) => {
     e.stopPropagation();
-    window.open(FileAPI.getDownloadUrl(file.id), "_blank");
+    window.open(downloadUrl, "_blank");
   };
 
   return (
@@ -54,7 +59,7 @@ export const FileCard = ({
         </p>
         <div className="flex items-center justify-between text-xs text-[#9aa0a6]">
           <span>{formatDate(file.modified_at)}</span>
-          <span>{FileAPI.formatFileSize(file.file_size)}</span>
+          <span>{formatFileSize(file.file_size)}</span>
         </div>
         <p className="text-xs text-[#9aa0a6] truncate">Owned by you</p>
       </div>

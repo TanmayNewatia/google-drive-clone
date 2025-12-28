@@ -18,19 +18,24 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { useFiles } from "@/contexts/files-context";
-import { FileData, FileAPI } from "@/lib/file-api";
+import {
+  useRenameFile,
+  useDeleteFile,
+  useDownloadUrl,
+} from "@/hooks/use-file-queries";
+import { FileData } from "@/lib/file-api";
 
 interface FileContextMenuProps {
   file: FileData;
 }
 
 export default function FileContextMenu({ file }: FileContextMenuProps) {
-  const { renameFile, deleteFile } = useFiles();
+  const renameFileMutation = useRenameFile();
+  const deleteFileMutation = useDeleteFile();
+  const downloadUrl = useDownloadUrl(file.id);
   const [isRenaming, setIsRenaming] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [newName, setNewName] = useState(file.original_name);
-  const [loading, setLoading] = useState(false);
 
   const handleRename = async () => {
     if (!newName.trim() || newName === file.original_name) {
@@ -38,31 +43,28 @@ export default function FileContextMenu({ file }: FileContextMenuProps) {
       return;
     }
 
-    setLoading(true);
     try {
-      await renameFile(file.id, newName.trim());
+      await renameFileMutation.mutateAsync({
+        id: file.id,
+        newName: newName.trim(),
+      });
       setIsRenaming(false);
     } catch (error) {
       console.error("Rename failed:", error);
-    } finally {
-      setLoading(false);
     }
   };
 
   const handleDelete = async () => {
-    setLoading(true);
     try {
-      await deleteFile(file.id);
+      await deleteFileMutation.mutateAsync(file.id);
       setIsDeleting(false);
     } catch (error) {
       console.error("Delete failed:", error);
-    } finally {
-      setLoading(false);
     }
   };
 
   const handleDownload = () => {
-    window.open(FileAPI.getDownloadUrl(file.id), "_blank");
+    window.open(downloadUrl, "_blank");
   };
 
   return (
@@ -134,10 +136,10 @@ export default function FileContextMenu({ file }: FileContextMenuProps) {
             </Button>
             <Button
               onClick={handleRename}
-              disabled={loading || !newName.trim()}
+              disabled={renameFileMutation.isPending || !newName.trim()}
               className="bg-[#4a90e2] hover:bg-[#357abd] text-white"
             >
-              {loading ? "Renaming..." : "Rename"}
+              {renameFileMutation.isPending ? "Renaming..." : "Rename"}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -162,10 +164,10 @@ export default function FileContextMenu({ file }: FileContextMenuProps) {
             </Button>
             <Button
               onClick={handleDelete}
-              disabled={loading}
+              disabled={deleteFileMutation.isPending}
               className="bg-red-600 hover:bg-red-700 text-white"
             >
-              {loading ? "Moving..." : "Move to trash"}
+              {deleteFileMutation.isPending ? "Moving..." : "Move to trash"}
             </Button>
           </DialogFooter>
         </DialogContent>

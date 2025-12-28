@@ -4,9 +4,7 @@ import { X } from "lucide-react";
 import { FilterBar } from "./partials/filter-bar";
 import { FileCard } from "./partials/file-card";
 import { FileUpload } from "@/components/file-upload";
-import { useFiles } from "@/contexts/files-context";
-import { FileAPI, FileData } from "@/lib/file-api";
-import { useState } from "react";
+import { useFiles } from "@/hooks/use-file-queries";
 
 interface FileGridProps {
   selectedFile: string | null;
@@ -14,9 +12,8 @@ interface FileGridProps {
 }
 
 export default function FileGrid({ selectedFile, onFileClick }: FileGridProps) {
-  const { files, loading, error, clearError } = useFiles();
-
-  if (loading) {
+  const { data: files = [], isLoading, error, refetch } = useFiles();
+  if (isLoading) {
     return (
       <div className="flex flex-col flex-1 overflow-auto p-6 gap-4">
         <div className="flex items-center justify-center h-64">
@@ -35,7 +32,13 @@ export default function FileGrid({ selectedFile, onFileClick }: FileGridProps) {
         <div className="flex items-center justify-center h-64">
           <div className="text-center">
             <p className="text-red-400 mb-2">Error loading files</p>
-            <p className="text-[#9aa0a6] text-sm">{error}</p>
+            <p className="text-[#9aa0a6] text-sm">{error.message}</p>
+            <button
+              onClick={() => refetch()}
+              className="mt-2 px-4 py-2 bg-[#4a90e2] text-white rounded-lg hover:bg-[#357abd] transition-colors"
+            >
+              Try Again
+            </button>
           </div>
         </div>
       </div>
@@ -47,21 +50,6 @@ export default function FileGrid({ selectedFile, onFileClick }: FileGridProps) {
         <FilterBar />
         <FileUpload />
       </div>
-
-      {error && (
-        <div className="bg-red-900/20 border border-red-700/50 rounded-lg p-4 flex items-center justify-between">
-          <div>
-            <p className="text-red-400 font-medium">Error</p>
-            <p className="text-red-300 text-sm">{error}</p>
-          </div>
-          <button
-            onClick={clearError}
-            className="text-red-400 hover:text-red-300 transition-colors"
-          >
-            <X size={20} />
-          </button>
-        </div>
-      )}
 
       {files.length === 0 ? (
         <div className="flex items-center justify-center h-64">

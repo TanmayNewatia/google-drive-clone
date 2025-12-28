@@ -2,11 +2,11 @@
 
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { useAuth } from "@/contexts/auth-context";
+import { useRefreshAuth } from "@/hooks/use-auth-queries";
 
 export default function AuthCallback() {
   const router = useRouter();
-  const { checkAuth } = useAuth();
+  const refreshAuth = useRefreshAuth();
 
   useEffect(() => {
     const handleCallback = async () => {
@@ -14,8 +14,8 @@ export default function AuthCallback() {
         // Add a small delay to ensure session is established
         await new Promise((resolve) => setTimeout(resolve, 1000));
 
-        // Check authentication status after OAuth callback
-        await checkAuth();
+        // Refresh authentication status after OAuth callback
+        refreshAuth();
 
         // Redirect to home page
         router.push("/");
@@ -27,7 +27,7 @@ export default function AuthCallback() {
     };
 
     handleCallback();
-  }, [checkAuth, router]);
+  }, [refreshAuth, router]);
   return (
     <div className="min-h-screen bg-[#202124] flex items-center justify-center">
       <div className="text-center space-y-4">

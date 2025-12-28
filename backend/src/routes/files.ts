@@ -86,7 +86,7 @@ router.post(
       const currentTime = new Date().toISOString();
 
       const fileData: Omit<File, "id"> = {
-        filename: req.file.filename,
+        filename: req.file.originalname,
         original_name: req.file.originalname,
         file_path: req.file.path,
         file_size: req.file.size,

@@ -1,3 +1,5 @@
+import { getApiUrl } from "./config";
+
 interface FileData {
   id: number;
   filename: string;
@@ -20,7 +22,15 @@ interface ApiResponse<T> {
   error?: string;
 }
 
-const API_BASE_URL = "http://localhost:3001/api";
+class ApiError extends Error {
+  status: number;
+
+  constructor(message: string, status: number) {
+    super(message);
+    this.name = "ApiError";
+    this.status = status;
+  }
+}
 
 export class FileAPI {
   private static async fetchWithAuth(url: string, options: RequestInit = {}) {
@@ -32,11 +42,11 @@ export class FileAPI {
         ...options.headers,
       },
     });
-
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
-      throw new Error(
-        errorData.error || `HTTP error! status: ${response.status}`
+      throw new ApiError(
+        errorData.error || `HTTP error! status: ${response.status}`,
+        response.status
       );
     }
 
@@ -46,7 +56,7 @@ export class FileAPI {
   // Get all files for the authenticated user
   static async getFiles(): Promise<FileData[]> {
     const response: ApiResponse<FileData> = await this.fetchWithAuth(
-      `${API_BASE_URL}/files`
+      getApiUrl("/files")
     );
     return response.files || [];
   }
@@ -54,7 +64,7 @@ export class FileAPI {
   // Get a specific file by ID
   static async getFile(id: number): Promise<FileData> {
     const response: ApiResponse<FileData> = await this.fetchWithAuth(
-      `${API_BASE_URL}/files/${id}`
+      getApiUrl(`/files/${id}`)
     );
     return response.file!;
   }
@@ -64,7 +74,7 @@ export class FileAPI {
     const formData = new FormData();
     formData.append("file", file);
 
-    const response = await fetch(`${API_BASE_URL}/files/upload`, {
+    const response = await fetch(getApiUrl("/files/upload"), {
       method: "POST",
       credentials: "include",
       body: formData,
@@ -72,8 +82,9 @@ export class FileAPI {
 
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
-      throw new Error(
-        errorData.error || `Upload failed! status: ${response.status}`
+      throw new ApiError(
+        errorData.error || `Upload failed! status: ${response.status}`,
+        response.status
       );
     }
 
@@ -84,7 +95,7 @@ export class FileAPI {
   // Rename a file
   static async renameFile(id: number, newName: string): Promise<FileData> {
     const response: ApiResponse<FileData> = await this.fetchWithAuth(
-      `${API_BASE_URL}/files/${id}/rename`,
+      getApiUrl(`/files/${id}/rename`),
       {
         method: "PUT",
         body: JSON.stringify({ newName }),
@@ -95,7 +106,7 @@ export class FileAPI {
 
   // Delete a file (soft delete)
   static async deleteFile(id: number): Promise<void> {
-    await this.fetchWithAuth(`${API_BASE_URL}/files/${id}`, {
+    await this.fetchWithAuth(getApiUrl(`/files/${id}`), {
       method: "DELETE",
     });
   }
@@ -103,25 +114,14 @@ export class FileAPI {
   // Search files
   static async searchFiles(query: string): Promise<FileData[]> {
     const response: ApiResponse<FileData> = await this.fetchWithAuth(
-      `${API_BASE_URL}/files/search?q=${encodeURIComponent(query)}`
+      getApiUrl(`/files/search?q=${encodeURIComponent(query)}`)
     );
     return response.files || [];
   }
 
   // Download a file
   static getDownloadUrl(id: number): string {
-    return `${API_BASE_URL}/files/${id}/download`;
-  }
-
-  // Format file size for display
-  static formatFileSize(bytes: number): string {
-    if (bytes === 0) return "0 Bytes";
-
-    const k = 1024;
-    const sizes = ["Bytes", "KB", "MB", "GB"];
-    const i = Math.floor(Math.log(bytes) / Math.log(k));
-
-    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + " " + sizes[i];
+    return getApiUrl(`/files/${id}/download`);
   }
 
   // Get file icon based on mime type
@@ -141,3 +141,4 @@ export class FileAPI {
 }
 
 export type { FileData, ApiResponse };
+export { ApiError };

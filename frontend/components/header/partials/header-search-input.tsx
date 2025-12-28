@@ -2,47 +2,34 @@
 
 import { Search, X } from "lucide-react";
 import { useState, useEffect } from "react";
-import { useFiles } from "@/contexts/files-context";
-import { FileData } from "@/lib/file-api";
+import { useSearchFiles } from "@/hooks/use-file-queries";
 
 export const HeaderSearchInput = () => {
-  const { searchFiles } = useFiles();
   const [query, setQuery] = useState("");
-  const [searchResults, setSearchResults] = useState<FileData[]>([]);
-  const [isSearching, setIsSearching] = useState(false);
+  const [debouncedQuery, setDebouncedQuery] = useState("");
   const [showResults, setShowResults] = useState(false);
 
-  const handleSearch = async (searchQuery: string) => {
-    if (!searchQuery.trim()) {
-      setSearchResults([]);
-      setShowResults(false);
-      return;
-    }
-
-    setIsSearching(true);
-    try {
-      const results = await searchFiles(searchQuery.trim());
-      setSearchResults(results);
-      setShowResults(true);
-    } catch (error) {
-      console.error("Search failed:", error);
-      setSearchResults([]);
-    } finally {
-      setIsSearching(false);
-    }
-  };
-
+  // Debounce the query
   useEffect(() => {
     const timeoutId = setTimeout(() => {
-      handleSearch(query);
-    }, 300); // Debounce search
+      setDebouncedQuery(query);
+    }, 300);
 
     return () => clearTimeout(timeoutId);
   }, [query]);
 
+  // Use the search hook with debounced query
+  const { data: searchResults = [], isLoading: isSearching } =
+    useSearchFiles(debouncedQuery);
+
+  // Show results when we have a query and results
+  useEffect(() => {
+    setShowResults(debouncedQuery.length > 0);
+  }, [debouncedQuery, searchResults]);
+
   const clearSearch = () => {
     setQuery("");
-    setSearchResults([]);
+    setDebouncedQuery("");
     setShowResults(false);
   };
 
