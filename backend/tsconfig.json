@@ -11,7 +11,7 @@
     "moduleResolution": "node",
     "allowSyntheticDefaultImports": true,
     "typeRoots": ["./src/types", "./node_modules/@types"],
-    "types": ["node", "express", "passport"]
+    "types": ["node", "express"]
   },
   "include": ["src/**/*.ts"],
   "exclude": ["node_modules"]
