@@ -30,9 +30,9 @@ A TypeScript Express.js backend for a Google Drive clone application with file m
 - **Framework**: Express.js
 - **Language**: TypeScript
 - **Database**: SQLite3
-- **Authentication**: Passport.js with Google OAuth
+- **Authentication**: Passport.js with Google OAuth 2.0
 - **File Uploads**: Multer
-- **Session Management**: express-session
+- **Session Management**: express-session with trust proxy support
 
 ## Getting Started
 
@@ -75,20 +75,60 @@ npm run build
 npm run dev
 ```
 
-The server will start on `http://localhost:3000`
+The server will start on `http://localhost:3001`
+
+## Production Deployment
+
+### Render.com Deployment
+
+The backend is configured for deployment on Render.com:
+
+1. **Build Command**: `npm run build`
+2. **Start Command**: `npm start`
+3. **Environment**: Node.js
+
+### Environment Variables for Production
+
+Set these environment variables in your Render dashboard:
+
+```env
+NODE_ENV=production
+PORT=10000
+FRONTEND_URL=https://your-frontend-domain.vercel.app
+SESSION_SECRET=your-super-secure-session-secret-for-production
+GOOGLE_CLIENT_ID=your-google-client-id
+GOOGLE_CLIENT_SECRET=your-google-client-secret
+GOOGLE_CALLBACK_URL=https://your-backend-domain.onrender.com/api/auth/google/callback
+```
 
 ## Environment Variables
+
+### Development (.env)
 
 Create a `.env` file with the following variables:
 
 ```env
-PORT=3000
+PORT=3001
 NODE_ENV=development
-FRONTEND_URL=http://localhost:3001
+FRONTEND_URL=http://localhost:3000
 SESSION_SECRET=your-super-secret-session-key
 GOOGLE_CLIENT_ID=your-google-client-id
 GOOGLE_CLIENT_SECRET=your-google-client-secret
-GOOGLE_CALLBACK_URL=http://localhost:3000/api/auth/google/callback
+GOOGLE_CALLBACK_URL=http://localhost:3001/api/auth/google/callback
+```
+
+### Production
+
+Use the values from `.env.production` or set them directly in your hosting platform:
+
+```env
+NODE_ENV=production
+PORT=10000
+FRONTEND_URL=https://your-frontend-domain.vercel.app
+SESSION_SECRET=your-super-secure-session-secret-for-production
+GOOGLE_CLIENT_ID=your-google-client-id
+GOOGLE_CLIENT_SECRET=your-google-client-secret
+GOOGLE_CALLBACK_URL=https://your-backend-domain.onrender.com/api/auth/google/callback
 ```
 
 ## Google OAuth Setup
@@ -97,9 +137,20 @@ GOOGLE_CALLBACK_URL=http://localhost:3000/api/auth/google/callback
 2. Create a new project or select existing
 3. Enable Google+ API
 4. Go to "Credentials" and create OAuth 2.0 Client ID
-5. Add authorized origins: `http://localhost:3000`
-6. Add authorized redirect URIs: `http://localhost:3000/api/auth/google/callback`
-7. Copy Client ID and Client Secret to your `.env` file
+5. Add authorized origins:
+   - Development: `http://localhost:3001`
+   - Production: `https://your-backend-domain.onrender.com`
+   - Frontend: `https://your-frontend-domain.vercel.app`
+6. Add authorized redirect URIs:
+   - Development: `http://localhost:3001/api/auth/google/callback`
+   - Production: `https://your-backend-domain.onrender.com/api/auth/google/callback`
+7. Copy Client ID and Client Secret to your environment variables
+
+### Important Notes
+
+- Uses `passport-google-oauth20` strategy for reliable session handling
+- Supports cross-origin authentication between frontend and backend
+- Session persistence is handled with trust proxy configuration for production
 
 ## API Documentation
 
@@ -144,8 +195,14 @@ npm run dev
 # Build TypeScript to JavaScript
 npm run build
 
-# Start production server
+# Start production server (after build)
 npm start
+
+# Start production server (alternative)
+npm run start:prod
+
+# Clean build directory
+npm run clean
 
 # Type checking
 npx tsc --noEmit
@@ -160,11 +217,22 @@ npx tsc --noEmit
 
 ## Security Features
 
-- Session-based authentication
+- Session-based authentication with Google OAuth 2.0
+- Trust proxy configuration for production hosting
+- Cross-origin request handling (CORS)
 - File ownership verification
 - Path traversal protection
-- File size limits
+- File size limits (100MB)
 - Soft delete for data recovery
+- Secure cookie handling in production (HTTPS)
+
+## Production Considerations
+
+- **Session Management**: Configured for hosting platforms like Render.com
+- **Trust Proxy**: Enabled for proper session handling behind reverse proxies
+- **CORS**: Configured to allow frontend domains (localhost, Vercel, etc.)
+- **Environment Variables**: TypeScript types moved to dependencies for production builds
+- **Database**: SQLite with persistent file system storage
 
 ## Error Handling
 
@@ -186,17 +254,35 @@ You can test the API using curl, Postman, or any HTTP client. Make sure to inclu
 
 ```
 src/
-├── app.ts              # Main application setup
+├── app.ts              # Main application setup with trust proxy
 ├── routes/
 │   ├── index.ts        # Route aggregator
-│   ├── auth.ts         # Authentication routes
+│   ├── auth.ts         # Authentication routes (Google OAuth 2.0)
 │   └── files.ts        # File management routes
 ├── db/
 │   └── db.ts           # Database schema and operations
 └── types/
     ├── express.d.ts    # Express type extensions
-    └── passport-google-oidc.d.ts  # Passport strategy types
+    └── passport-google-oidc.d.ts  # Legacy type definitions
 ```
+
+## Troubleshooting
+
+### Authentication Issues
+
+If you encounter authentication problems:
+
+1. **Session State Errors**: Ensure `trust proxy` is enabled for production
+2. **CORS Issues**: Verify frontend domain is in CORS whitelist
+3. **Cookie Issues**: Check secure/sameSite settings for production
+4. **Type Errors**: Ensure `@types/passport-google-oauth20` is in dependencies
+
+### Common Production Issues
+
+- **Environment Variables**: Must be set in hosting platform dashboard
+- **Build Errors**: TypeScript types must be in `dependencies`, not `devDependencies`
+- **Session Persistence**: Requires proper trust proxy configuration
+- **Cross-Origin Cookies**: Requires `sameSite: "none"` and `secure: true` in production
 
 ## Contributing
 
