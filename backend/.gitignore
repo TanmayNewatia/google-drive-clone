@@ -3,6 +3,7 @@
 
 # env
 .env
+.env.production
 
 # output
 /dist
