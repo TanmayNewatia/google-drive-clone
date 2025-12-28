@@ -18,26 +18,15 @@ const port = process.env.PORT || 3000;
 // Middleware
 app.use(
   cors({
-    origin: function (origin, callback) {
-      // Allow requests with no origin (like mobile apps or curl requests)
-      if (!origin) return callback(null, true);
-
-      const allowedOrigins = [
-        process.env.FRONTEND_URL,
-        "http://localhost:3000",
-      ].filter(Boolean);
-
-      if (allowedOrigins.includes(origin)) {
-        return callback(null, true);
-      } else {
-        console.log(`CORS blocked origin: ${origin}`);
-        return callback(new Error("Not allowed by CORS"));
-      }
-    },
+    origin: [
+      process.env.FRONTEND_URL || "http://localhost:3000",
+      "http://localhost:3000",
+      "http://localhost:3001",
+    ],
     credentials: true,
     methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allowedHeaders: ["Content-Type", "Authorization", "Cookie"],
-    optionsSuccessStatus: 200, // For legacy browser support
+    optionsSuccessStatus: 200,
   })
 );
 app.use(express.json());
@@ -62,19 +51,6 @@ app.use(
 // Passport middleware
 app.use(passport.initialize());
 app.use(passport.session());
-
-// Debug middleware for authentication issues
-if (process.env.NODE_ENV === "production") {
-  app.use((req, res, next) => {
-    console.log(`${new Date().toISOString()} - ${req.method} ${req.path}`);
-    console.log("Session ID:", req.sessionID);
-    console.log("Is Authenticated:", req.isAuthenticated?.());
-    console.log("User:", req.user);
-    console.log("Origin:", req.headers.origin);
-    console.log("---");
-    next();
-  });
-}
 
 // Routes
 app.use("/api", routes);

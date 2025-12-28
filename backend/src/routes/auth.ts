@@ -123,7 +123,12 @@ passport.use(
 // from the database when deserializing.
 passport.serializeUser(function (user: any, cb: Function) {
   process.nextTick(function () {
-    cb(null, { id: user.id, username: user.username, name: user.name });
+    const serializedUser = {
+      id: user.id,
+      username: user.username,
+      name: user.name,
+    };
+    cb(null, serializedUser);
   });
 });
 
